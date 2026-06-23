@@ -13,8 +13,8 @@
 //!     to all the frontends watching it.
 //!
 //! The frontend is what you see; the twin is what makes the count shared. See
-//! `twin.q` (generated from the `@state(app)` line below) for the backend half,
-//! and `README.md` for how the two are wired.
+//! `twin.q` for what the twin runs (the other placement of the `@state(app)`
+//! line below), and `README.md` for how the two are wired.
 
 screen Counter {
   @state(app) count = 0           // app scope → one shared number, kept in the twin

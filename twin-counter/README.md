@@ -16,8 +16,9 @@ A twin is a single program that runs as **two** WebAssembly modules:
 - a **backend** wasm — the *twin* — that owns the shared number and pushes
   every change out to all the frontends watching it.
 
-You only author the frontend. The backend twin falls out of the one
-`@state(app)` line.
+You author one program — the screen. It runs in **two places**: a frontend
+instance that renders it, and a backend **twin** instance that holds the
+`@state(app)` for everyone. Same program, placed twice.
 
 **[`counter.q`](./counter.q)** — what you write (the frontend):
 
@@ -35,7 +36,7 @@ screen Counter {
 }
 ```
 
-**[`twin.q`](./twin.q)** — generated from it (the backend twin):
+**[`twin.q`](./twin.q)** — what the backend twin runs (the other placement):
 
 ```q64
 state count = 0
@@ -44,6 +45,11 @@ pub fn inc() {
   count = count + 1
 }
 ```
+
+The backend half is spelled out here so you can see both wasm. In the twin
+model you don't normally write it — the `@state(app)` line *is* the backend;
+having the compiler split your one program into the frontend + this twin
+automatically is the part being built (today the POC scaffolds it).
 
 `state count = 0` (local, this browser) vs `@state(app) count = 0` (shared, in
 the twin) is the whole distinction. The `@` means *synced*; `(app)` means *one

@@ -7,9 +7,9 @@
   type: "application",
 
   // The source you write is the frontend screen. `@state(app)` in it is what
-  // pulls in the backend twin — the qubepods host gives that app-scoped state
+  // designates the backend twin — the qubepods host gives that app-scoped state
   // its own server-side instance (one per project) and fans changes to every
-  // frontend. `twin.q` is generated from those `@state(app)` declarations; you
-  // don't hand-write it.
+  // frontend. `twin.q` shows what that twin runs; you don't normally hand-write
+  // it (the compiler placing your one program twice is being built).
   entry: "counter.q",
 }
