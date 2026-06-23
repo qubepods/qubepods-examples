@@ -20,7 +20,7 @@ cross-qube story is the component model + wRPC, driven by the `rpc` block in
 
 | `backend.q` uses | Maps to | Status |
 |---|---|---|
-| `match env.kv.increment(…) { Ok(n) -> …, Err(_) -> … }` | `env.kv` → `wasi:keyvalue`, returns `Result<i64>` | 🟡 **keyless** `env.kv.increment(delta)` runs; the **keyed** `("count", 1)` form is a gap |
+| `match env.kv.increment(…) { Ok(n) -> …, Err(_) -> … }` | `env.kv` → `wasi:keyvalue`, returns `Result<i64>` | ✅ runs — **keyed** `("count", 1)` and keyless both, returning `Result<i64>` |
 | `Vec.new()` + `.push` + `for tx in …` | growable Vec + iteration | ✅ runs (the empty growable + fan-out loop) |
 | `spawn { … }` (fire-and-forget) | cooperative task, eager v0 | ✅ runs (main / `for` / `if` bodies) |
 | method-style actor (`var c = C{}`, `c.m()`) | actor = self-taking fns | ✅ runs |
@@ -100,10 +100,9 @@ a `--component` qube deployed with `rpc.export: true` is reachable as both
 
 To compile `backend.q` *as written*, in dependency order:
 
-1. **Keyed `env.kv.increment(key, delta)`** — extend the v0 keyless import to
-   take a `str` key (ptr,len) + i64 delta. Small: the host import gains two
-   args; the host store becomes a `map<str,i64>`. Unblocks the twin's exact
-   `env.kv` calls.
+1. ~~**Keyed `env.kv.increment(key, delta)`**~~ — ✅ **done.** The import takes
+   `(key_ptr, key_len, delta)`; the host store is a `map<str,i64>`. The twin's
+   `bump()`/`read()` on `"count"` compile and run (verified: `1,2,2,3`).
 2. **Message-style actors** — `handle Msg(payload) { … }` + `actor.tell(Msg(x))`
    + `Actor.spawn()`, lowering the message enum + a serial dispatch. `check.zig`
    already validates this surface (`handle Get -> i64`); codegen is the gap.
