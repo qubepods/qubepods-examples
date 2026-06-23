@@ -27,7 +27,7 @@ cross-qube story is the component model + wRPC, driven by the `rpc` block in
 | `Vec<Sender<…>>` + `subs.push(move tx)` + `for tx in subs { tx.send(n) }` | fan-out over channel endpoints | ✅ runs **standalone** — a Sender is its buffer pointer (i64), pushed/iterated/`.send` works; multi-subscriber broadcast verified. Still a gap *inside an actor's state* (see #2c) |
 | `move tx` / `ref x` | ownership qualifiers | ✅ runs (v0 identity — no borrow tracking yet) |
 | `for n in rx` | recv loop over a channel | ✅ runs (drains the buffer in order) |
-| `actor Counter { … handle Bump handle Add(x) }` + `c.tell(Msg)` / `c.ask(Msg)` / `Counter.spawn()` | **message-style** actor dispatch | ✅ runs for scalar payloads (`tell(Bump)`, `tell(Add(5))`, `ask(Get)`, `spawn()`); non-scalar payloads (`Join(Sender)`) ride the `Vec<Sender>`/`move` gaps |
+| `actor Counter { state subs: Vec<Sender> … handle Join(tx) handle Bump }` + `tell`/`ask`/`spawn` | **message-style** actor + **live fan-out** | ✅ runs — `state subs: Vec<Sender>`, `handle Join(tx: Sender<…>) { state.subs.push(tx) }`, `handle Bump { for s in state.subs { s.send(n) } }`; two subscribers both receive the broadcast |
 | `@channel_handler pub fn join(session: Channel<i64, Tap>)` | rpc channel entry point | ⬜ gap (the channel-handler attribute + `Channel<S,R>` param) |
 | `channel<i64>(policy: Unbounded)`, `tx.send`, `rx.recv` | in-process channel | ✅ runs (passes `check` + emits) |
 | `for n in rx` / `for _tap in session` | for-in over a channel/stream | 🟡 for-in over a Vec runs; over a live channel/stream is a gap |
@@ -127,27 +127,19 @@ To compile `backend.q` *as written*, in dependency order:
    `move`/`ref` are v0 identity. (One narrow channel limit remains: `recv()` in
    *expression* position with multiple channels — the twin uses `let`/`for`
    forms, so it's unaffected.)
-2c. **Actor state as a collection + Sender-typed handler params** — the last
-   layer to wire 2b *into the actor*: `state subs: Vec<Sender<…>>` and
-   `handle Join(tx: Sender<…>)`. Sub-pieces (qualified `state.<field>` access ✅
-   done — `state.n` reads/writes now resolve to `self.n`). Remaining, ~6
-   integration points around one new representation (*a Vec stored in a record
-   field* = the field holds the Vec header pointer):
-   - **struct builder** — accept a `Vec<T>` (and `Sender<T>`) state field as a
-     `.ptr` field (today `semaScalar` rejects it → the actor isn't registered →
-     `NameNotFound`).
-   - **default init** — `= Vec.new()` builds a `vec_new` stored in the field
-     (the `C {}` / `Actor.spawn()` paths use `buildIntExpr` for defaults, which
-     rejects `Vec.new()`).
-   - **`state.subs.push(x)`** — resolve `state.subs` to the field's Vec pointer
-     and `vec_push` onto it (extend `tryVecPush`, which today only knows
-     `scope.vecs` locals).
-   - **`for s in state.subs`** — iterate the field's Vec (same field-pointer
-     resolution in the for-in source).
-   - **`Sender`-typed handler param** — accept it as i64 (a sender value) in
-     `registerActorHandler` (today params must be `bool`/`i64`/`f64`/`f32`).
-   The fan-out primitives (2b) all run standalone; this slice routes the vec ops
-   through an actor state field. It's the biggest single remaining piece.
+2c. ~~**Actor state as a collection + Sender-typed handler params**~~ — ✅ **done.**
+   The twin's exact actor now compiles and runs end-to-end. All sub-pieces:
+   - qualified `state.<field>` access (reads + writes) ✅;
+   - the struct builder accepts a `Vec<T>` state field as an i64 cell (the vec
+     header pointer) ✅;
+   - the `= Vec.new()` default builds a `vec_new` into the cell ✅;
+   - `state.subs.push(x)` narrows the cell to the buffer pointer and pushes ✅;
+   - for-loops now work in handler bodies, and `for s in state.subs` iterates the
+     state Vec ✅;
+   - a `Sender`/`Receiver`/`Vec`-typed handler param is accepted as i64 ✅.
+   Verified: `Twin { state subs: Vec<Sender>; handle Join(tx) { subs.push(tx) };
+   handle Bump { for s in subs { s.send(99) } } }` with two subscribers — both
+   receive 99.
 3. **`@channel_handler` + `Channel<S, R>`** — the rpc channel entry point: a
    `pub fn` taking a bidirectional channel, served over wRPC. Rides #2c and the
    component/wRPC export already wired in the manifest.
