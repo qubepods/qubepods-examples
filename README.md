@@ -12,7 +12,7 @@ can build with `qube` and deploy to a qubepods project.
 
 | Example | What it shows |
 |---------|---------------|
-| [**twin-counter**](./twin-counter/) | The backend starter. A page with a button and a shared count, built as a **twin** — one frontend wasm renders the screen, one backend wasm holds the count for everyone. Shows how to turn on a project backend and share state with a single `@state(app)`. |
+| [**twin-counter**](./twin-counter/) | The backend starter. A button and a shared count, built as a **twin** — a frontend wasm that renders, and a backend wasm you write that holds the count in a WASI key-value store (`env.kv`) and serves it over wRPC. |
 
 ## Using an example
 
