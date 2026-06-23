@@ -1,14 +1,11 @@
 # Live fan-out — design note
 
-The shipped `twin-counter` is request/response: the frontend calls `read` on
-load and `bump` on tap. That makes the count *shared* (one `env.kv` key for the
-project), but not *live* — you only see other people's taps when you reload or
-tap yourself.
-
-This note works out the live version: a tap on any device lights up the number
-on all of them. It's grounded in the q64 specs (citations inline), and it's
-explicit about the two spots where the language surface meets the platform's
-twin hosting and isn't fully first-class yet.
+`twin-counter` is the live version: a tap on any device lights up the number on
+all of them, with no polling. This note is the design behind the code in
+`backend/` and `frontend/` — grounded in the q64 specs (citations inline), and
+explicit about the two spots, marked `HOST SEAM` in the source, where the
+language surface meets the platform's twin hosting and isn't fully first-class
+yet.
 
 ## You don't need a listener — notify rides the RPC channel
 

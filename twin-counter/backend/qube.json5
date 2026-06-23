@@ -3,11 +3,13 @@
   name: "qubepods.examples.counter_backend",
   version: "0.1.0",
   license: "MIT OR Apache-2.0",
-  description: "The backend twin: holds the shared count in a WASI key-value store and serves bump/read over wRPC.",
+  description: "The backend twin: holds the shared count in a WASI key-value store and fans every change out to all frontends over a wRPC channel.",
   type: "library",
   entry: "backend.q",
 
-  // Serve this qube's surface (bump/read) over wRPC so the frontend can call it.
+  // Serve the channel entry point (`join`) over wRPC so each frontend can
+  // connect, send taps, and receive the live count. Streaming RPC requires the
+  // component model — hence emit.
   component: {
     emit: true,
     world: "counter-backend",
@@ -16,10 +18,10 @@
     export: true,
   },
 
-  // The one capability the backend asks for: a key-value store (env.kv →
-  // wasi:keyvalue). qubepods binds that import to the project's store at boot.
-  // `qube audit` shows exactly this — no network, no filesystem.
+  // What the backend asks for: a key-value store (env.kv → wasi:keyvalue), which
+  // qubepods binds to the project's store at boot, plus @wire for the channel it
+  // serves. `qube audit` shows exactly this — no network, no filesystem.
   effects: {
-    declared: ["@kv"],
+    declared: ["@kv", "@wire"],
   },
 }

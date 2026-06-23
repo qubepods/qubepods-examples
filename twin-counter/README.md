@@ -6,58 +6,65 @@ built the way qubepods backends are built — as a **twin**.
 A twin is two qubes, two wasm:
 
 - [**`frontend/`**](./frontend) — renders the button and the number (wasm32 →
-  WebGPU), and calls the backend.
+  WebGPU), and holds one live channel to the backend.
 - [**`backend/`**](./backend) — **you write it.** It keeps the count in a WASI
-  key-value store and serves `bump` / `read` to the frontend over wRPC.
+  key-value store and fans every change out to all the frontends over a wRPC
+  channel — so a tap on any device updates them all.
 
 The count lives in the backend's key-value store, so it's one number for the
-whole project: every frontend that calls the backend reads and writes the same
-`"count"`.
+whole project; the backend is a single instance, so it can hold the set of
+connected frontends and broadcast to them.
 
 ## The backend you write
 
-[`backend/backend.q`](./backend/backend.q) — the shared count, in a WASI KV
-binding (`env.kv` → `wasi:keyvalue`):
+[`backend/backend.q`](./backend/backend.q) — the count in a WASI KV binding
+(`env.kv` → `wasi:keyvalue`), and a q64 **actor** that owns the subscriber set
+and fans out:
 
 ```q64
-pub fn bump() -> i64 @kv {
-    match env.kv.increment("count", 1) {   // wasi:keyvalue/atomics.increment
-        Ok(n)  -> n
-        Err(_) -> 0
+actor Counter {
+    state subs: Vec<Sender<i64, Unbounded>> = Vec.new()
+
+    handle Join(tx: Sender<i64, Unbounded>) @kv {
+        tx.send(read())                       // give the newcomer the current value…
+        state.subs.push(move tx)              // …then remember it
+    }
+    handle Bump @kv {
+        let n = bump()                        // env.kv.increment("count", 1)
+        for tx in state.subs { tx.send(n) }   // ← the fan-out
     }
 }
 
-pub fn read() -> i64 @kv {
-    match env.kv.increment("count", 0) {   // +0 reads the current value
-        Ok(n)  -> n
-        Err(_) -> 0
-    }
+@channel_handler
+pub fn join(session: Channel<i64, Tap>) @wire {
+    let (tx, rx) = channel<i64, Unbounded>()
+    twin.tell(Join(move tx))                  // register this frontend
+    spawn { for n in rx { session.send(n) } } // push the twin's updates out to it
+    for _tap in session { twin.tell(Bump) }   // forward its taps to the twin
 }
 ```
 
-The backend names no database and no cloud — it asks for one capability,
-`@kv`. qubepods binds that `wasi:keyvalue` import to the project's store at
-boot. `qube audit` shows the whole surface: `wasi:keyvalue`, nothing else.
-`rpc.export: true` in its [`qube.json5`](./backend/qube.json5) serves `bump` and
-`read` over wRPC.
+The backend names no database and no cloud — it asks for `@kv` (the WASI
+key-value store qubepods binds to the project) and `@wire` (the channel it
+serves). `qube audit` shows exactly that. `component.emit: true` +
+`rpc.export: true` ([`qube.json5`](./backend/qube.json5)) serve the channel; the
+`Sender` set stays process-local (only the channel's `stream<i64>` crosses the
+wire — see [`fan-out.md`](./fan-out.md)).
 
-## The frontend that calls it
+## The frontend
 
-[`frontend/frontend.q`](./frontend/frontend.q) — renders, and calls the backend:
+[`frontend/frontend.q`](./frontend/frontend.q) — renders, and holds one channel
+to the twin:
 
 ```q64
-import counter.{bump, read}              // bound to the backend in qube.json5
+import counter.{join}
 
 state count = 0
 
 fn main @wire {
-    count = read()                       // load the shared count, then draw
-    paint()
-}
-
-pub fn on_press(id: i64) @wire {
-    count = bump()                       // add one on the backend; show the total
-    paint()
+    let twin = connect<counter.join>()              // Channel<Tap, i64>
+    spawn { for n in twin { count = n; paint() } }  // live: redraw on every broadcast
+    for _press in presses() { twin.send(Tap) }      // each press → a tap up the channel
 }
 
 fn paint {
@@ -68,9 +75,14 @@ fn paint {
 }
 ```
 
-`import counter.{…}` is wired to the backend by the frontend's
-[`qube.json5`](./frontend/qube.json5) `rpc.import`. Each call crosses a wire, so
-the frontend picks up the `@wire` effect — visible in `qube audit`.
+`connect<counter.join>()` opens the dual end of the backend's channel (the name
+`counter` is bound by the frontend's [`qube.json5`](./frontend/qube.json5)
+`rpc.import`). The call carries `@wire`, visible in `qube audit`.
+
+> Two pieces are platform-side and marked `HOST SEAM` in the source: making the
+> `actor` one instance per project (the twin/Durable-Object hosting; sugar is
+> `@state(scope)`), and turning a qview press into a channel `Tap`. See
+> [`fan-out.md`](./fan-out.md).
 
 ## 1. Create a project with the backend enabled
 
@@ -103,8 +115,8 @@ as an installable PWA, and you're already signed in.
    ```
 
 `qube run` compiles each half to WebAssembly on-device (the q64 compiler is
-itself wasm, so it works on iPad Safari): the backend serves `bump`/`read`, and
-the frontend renders the screen in the **Preview** pane and calls the backend.
+itself wasm, so it works on iPad Safari): the backend serves its channel, and
+the frontend renders the screen in the **Preview** pane and connects to it.
 
 ### Prefer a desktop terminal?
 
@@ -119,22 +131,21 @@ qube run
 ## 3. How the shared count works
 
 - **The count lives in the backend, in `env.kv`.** One project = one backend
-  instance = one `"count"` key. Every frontend that calls `bump`/`read` hits
-  the same number.
-- **`bump` is atomic.** `env.kv.increment` lowers to
-  `wasi:keyvalue/atomics.increment`, so two people tapping at once both get
-  counted — neither write is lost. `read` is just a bump of zero.
-- **The frontend draws what it last read.** It calls `read()` on load and
-  `bump()` on each tap, so it always shows the current shared total when it
-  loads or when you tap. (To watch *other* people's taps land live without
-  re-tapping, the frontend would subscribe to the backend over the project
-  channel — a small step on top of the same two qubes.)
+  instance = one `"count"` key, kept in the WASI key-value store. `bump` is
+  atomic (`wasi:keyvalue/atomics.increment`), so two taps at once both land.
+- **The backend holds the connections and broadcasts.** Because it's a single
+  instance, the `actor` can keep the set of connected frontends. On a tap it
+  bumps the count and `send`s the new value down every channel — the fan-out.
+- **The frontend renders every value it receives.** It opens one channel,
+  `for n in twin { … }` redraws on each broadcast, and sends a `Tap` up on each
+  press. So a tap on one device lights up the number on all of them, live —
+  no polling, no re-tapping.
 
 ## Files
 
 | File | What it is |
 |------|------------|
-| [`backend/backend.q`](./backend/backend.q) | The backend you write — the shared count in a WASI KV binding (`env.kv`), served over wRPC. |
-| [`backend/qube.json5`](./backend/qube.json5) | Backend manifest: library, `rpc.export`, `@kv`. |
-| [`frontend/frontend.q`](./frontend/frontend.q) | The frontend that renders the button + count and calls the backend. |
+| [`backend/backend.q`](./backend/backend.q) | The backend you write — count in a WASI KV binding (`env.kv`), an actor that fans out over a wRPC channel. |
+| [`backend/qube.json5`](./backend/qube.json5) | Backend manifest: library, `component.emit`, `rpc.export`, `@kv` + `@wire`. |
+| [`frontend/frontend.q`](./frontend/frontend.q) | The frontend — renders the button + count and holds one channel to the twin. |
 | [`frontend/qube.json5`](./frontend/qube.json5) | Frontend manifest: application, `rpc.import` of the backend, `@wire`. |

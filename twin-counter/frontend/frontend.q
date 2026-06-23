@@ -1,24 +1,31 @@
 //! frontend — the twin half that renders.
 //!
-//! Draws a button and the count, and calls the backend over wRPC to read and
-//! bump the shared number. Compiles to wasm32, renders via WebGPU (qview).
+//! Holds one live channel to the backend twin: it sends `Tap` up on each press
+//! and receives the count down. A spawned loop redraws on every value the twin
+//! broadcasts, so a tap on *any* device updates this screen too. Compiles to
+//! wasm32, renders via WebGPU (qview).
 //!
-//! `import counter.{bump, read}` binds to the backend declared in qube.json5's
-//! `rpc.import`. Every call into it carries `@wire` — a remote call, disclosed
-//! in the manifest and in `qube audit`.
+//! `connect<counter.join>()` opens the dual end of the backend's `join` channel
+//! (the local name `counter` is bound to the backend in qube.json5's
+//! `rpc.import`). The call carries `@wire` — disclosed in `qube audit`.
 
-import counter.{bump, read}
+import counter.{join}
 
-state count = 0          // what to draw; the real number lives in the backend
+struct Tap {}
+
+state count = 0
 
 fn main @wire {
-    count = read()       // load the current shared count, then draw
-    paint()
-}
+    let twin = connect<counter.join>()              // Channel<Tap, i64>: send Tap, recv counts
+    spawn { for n in twin { count = n; paint() } }  // live: redraw on every broadcast
 
-pub fn on_press(id: i64) @wire {
-    count = bump()       // ask the backend to add one; show the new total
-    paint()
+    // HOST SEAM 2 — press source. qview delivers presses through the
+    // `on_press(id)` callback, not as an event stream; turning each press into
+    // `twin.send(Tap)` is the wiring to pin down. Shown as a loop over a press
+    // stream for the event-loop shape (env.md's channel frontend).
+    for _press in presses() {
+        twin.send(Tap)
+    }
 }
 
 // Label ids index the host glyph catalog (0: heading, 1: button label).

@@ -3,20 +3,21 @@
   name: "qubepods.examples.counter",
   version: "0.1.0",
   license: "MIT OR Apache-2.0",
-  description: "The frontend twin: renders the button + count and calls the backend over wRPC.",
+  description: "The frontend twin: renders the button + count and holds one wRPC channel to the backend.",
   type: "application",
   entry: "frontend.q",
 
-  // Bind the local name `counter` to the backend's wRPC endpoint. On qubepods
-  // the project resolves this to its own backend twin; for a local run it's a
-  // plain wrpc:// URL (the backend served with `rpc.export`).
+  // Bind the local name `counter` to the backend's wRPC endpoint, so
+  // `connect<counter.join>()` opens the channel. On qubepods the project
+  // resolves this to its own backend twin; for a local run it's a plain wrpc://
+  // URL (the backend served with `rpc.export`).
   rpc: {
     import: {
       counter: "wrpc://counter-backend",
     },
   },
 
-  // Calling the imported backend crosses a wire, so the frontend's effect set
+  // Opening/using the channel crosses a wire, so the frontend's effect set
   // carries @wire (visible in `qube audit`).
   effects: {
     declared: ["@wire"],
