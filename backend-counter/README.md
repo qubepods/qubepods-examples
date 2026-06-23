@@ -52,14 +52,23 @@ but two visitors would never see a shared number.
 
 ## 2. Run it — in the browser (no desktop needed)
 
-You don't need a terminal, a toolchain, or even a laptop. qubepods is
+You don't need a desktop, a local toolchain, or even a laptop. qubepods is
 browser-first: a mobile or iPad is enough. The IDE — **Qubonaut** — runs at
 `app.qubepods.com` as an installable PWA, and you're **already signed in**
 there, so there's no login step and no token to save.
 
 1. Open your backend-enabled project from step 1 and tap **Edit** to open it
-   in Qubonaut, with this example's source loaded.
-2. Press **Run**.
+   in **Qubonaut**.
+2. In Qubonaut's terminal, clone this example into your workspace:
+
+   ```sh
+   git clone https://github.com/qubepods/qubepods-examples.git
+   cd qubepods-examples/backend-counter
+   ```
+
+   Qubonaut has a built-in terminal with `git` (it talks to GitHub over the
+   API, so it works on iPad too — no desktop git needed).
+3. Press **Run**.
 
 That's it. Pressing **Run** builds the qube to WebAssembly on-device (the q64
 compiler itself is wasm, so it works on iPad Safari) and deploys it onto the
