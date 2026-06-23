@@ -51,47 +51,50 @@ project's endpoint lands on it.
 Without a backend, a project is static/stateless — fine for a brochure site,
 but two visitors would never see a shared number.
 
-## 2. Get the example
+## 2. Run it — in the browser (no desktop needed)
 
-Open a console, clone this examples repo, and `cd` into this example:
+You don't need a terminal, a toolchain, or even a laptop. qubepods is
+browser-first: a mobile or iPad is enough. The IDE — **Qubonaut** — runs at
+`app.qubepods.com` as an installable PWA, and you're **already signed in**
+there, so there's no login step and no token to save.
+
+1. Open your backend-enabled project from step 1 and tap **Edit** to open it
+   in Qubonaut, with this example's source loaded.
+2. Press **Run**.
+
+That's it. Pressing **Run** builds the qube to WebAssembly on-device (the q64
+compiler itself is wasm, so it works on iPad Safari) and deploys it onto the
+project. No `qube build`, no `qube pod login`, no `qube pod deploy` — those are
+the desktop-CLI spellings of what the **Run** button does for you.
+
+Your project already has its address on **`*.qubepod.app`**, shown on the
+project page.
+
+> **Public access is the part we're still building.** Pressing **Run** builds
+> and deploys the qube and gives you a live preview of the page. Wiring the
+> project's `*.qubepod.app` route so *anyone* on the open internet hits your
+> Durable Object — that last hop is in active development, and **this example
+> is the one we're using to get there.** When it lands, the steps above don't
+> change: same Run button, same route, now public.
+
+### Prefer a desktop terminal?
+
+Everything above also has a CLI form, for when you're working from a laptop
+instead of the dashboard. Clone the repo and build/run it against any WASIp3
+host:
 
 ```sh
 git clone https://github.com/qubepods/qubepods-examples.git
 cd qubepods-examples/backend-counter
-```
-
-### To run it (locally)
-
-Build the component and serve it with any WASIp3 host:
-
-```sh
 qube build --component
-wasmtime serve target/<host>/backend-counter.component.wasm
-# open http://localhost:8080
+wasmtime serve target/<host>/backend-counter.component.wasm   # open http://localhost:8080
 ```
 
-Run this way, the count lives in the host's own key-value store for the life
-of the process — great for trying it, but it's just you, and it resets when
-you stop the server.
-
-### To deploy it (to qubepods)
-
-Log in once, then deploy into the backend-enabled project from step 1:
-
-```sh
-qube pod login          # once, to save your qubepods token
-qube pod deploy         # build the component + upload it to your project
-```
-
-(If you have more than one project, `qube pod deploy` asks which one — pick
-the backend-enabled project you made in step 1.)
-
-qubepods gives the project a subdomain on **`*.qubepod.app`** — its public
-HTTPS endpoint. Visit that URL and you'll see the page; click the button and
-the number goes up for **everyone** on that URL, because now the count lives
-in the project's Durable Object instead of a local process. That one
-`*.qubepod.app` address is the only link you share — nothing else to pull or
-configure.
+Run this way the count lives in the host's own store for the life of the
+process — just you, and it resets when you stop the server. Deploying to a
+project from the CLI (`qube pod login` then `qube pod deploy`) is the desktop
+counterpart to the **Run** button, and rides the same in-progress public-route
+work noted above.
 
 ## 3. How the shared count works
 
@@ -164,14 +167,18 @@ that asks for `wasi:keyvalue` and a project whose Durable Object answers.
 This example is deliberately at the leading edge — it's both a demo and a
 spec for the pieces being finished. As of now:
 
-- **Working:** the q64 source (one `@http_handler`, `env.kv`), component
-  emission to `wasi:http/proxy`, and serving it under a WASIp3 host. The
-  backend-enabled project + single Durable Object + SQLite storage exist.
-- **Being wired:** binding the component's `wasi:keyvalue` import to the
-  project's Durable Object automatically at boot, per-project and
-  per-identity. Until that lands, `env.kv` resolves to the host's default
-  store (so it runs and counts, but isn't yet pinned to *your project's* DO on
-  every path).
+- **Working:** the q64 source (one `@http_handler`, `env.kv`) and component
+  emission to `wasi:http/proxy`; building it **on-device in the browser** (the
+  q64 compiler is itself wasm, iPad included) and serving it under a WASIp3
+  host. The backend-enabled project + single Durable Object + SQLite storage
+  exist, and the project's `*.qubepod.app` route is shown on the project page.
+- **Being wired:** the **Run → public** last hop — deploying from the browser
+  and serving the project's `*.qubepod.app` route to the open internet so every
+  visitor hits the same Durable Object; and binding the component's
+  `wasi:keyvalue` import to *that* project's DO at boot (per-project,
+  per-identity). Until those land, **Run** builds, deploys, and previews for
+  you, and `env.kv` resolves to the host's default store. **This example is the
+  thing we're using to finish that hop.**
 - **On the roadmap:** a raw-SQL face (`env.db` → `wasi:sql`) over the same
   Durable Object, for examples that want tables and queries rather than a
   single counter; and richer `wasi:http` `Request`/`Response` builders

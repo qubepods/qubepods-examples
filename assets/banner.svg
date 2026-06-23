@@ -32,6 +32,6 @@
 
   <!-- route hint, monospace -->
   <text x="272" y="226" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" fill="#5d6273">
-    qube pod deploy  →  https://your-app.qubepod.app
+    open in Qubonaut  ·  press Run  ·  no toolchain, iPad is enough
   </text>
 </svg>
