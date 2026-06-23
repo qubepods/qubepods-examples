@@ -24,7 +24,9 @@ cross-qube story is the component model + wRPC, driven by the `rpc` block in
 | `Vec.new()` + `.push` + `for tx in …` | growable Vec + iteration | ✅ runs (the empty growable + fan-out loop) |
 | `spawn { … }` (fire-and-forget) | cooperative task, eager v0 | ✅ runs (main / `for` / `if` bodies) |
 | method-style actor (`var c = C{}`, `c.m()`) | actor = self-taking fns | ✅ runs |
-| `Vec<Sender<…>>` (a Vec of senders) | Vec holding channel **endpoints** | ⬜ gap — the *Senders-as-values* subsystem (see path-forward #2) |
+| `Vec<Sender<…>>` + `subs.push(move tx)` + `for tx in subs { tx.send(n) }` | fan-out over channel endpoints | ✅ runs **standalone** — a Sender is its buffer pointer (i64), pushed/iterated/`.send` works; multi-subscriber broadcast verified. Still a gap *inside an actor's state* (see #2c) |
+| `move tx` / `ref x` | ownership qualifiers | ✅ runs (v0 identity — no borrow tracking yet) |
+| `for n in rx` | recv loop over a channel | ✅ runs (drains the buffer in order) |
 | `actor Counter { … handle Bump handle Add(x) }` + `c.tell(Msg)` / `c.ask(Msg)` / `Counter.spawn()` | **message-style** actor dispatch | ✅ runs for scalar payloads (`tell(Bump)`, `tell(Add(5))`, `ask(Get)`, `spawn()`); non-scalar payloads (`Join(Sender)`) ride the `Vec<Sender>`/`move` gaps |
 | `@channel_handler pub fn join(session: Channel<i64, Tap>)` | rpc channel entry point | ⬜ gap (the channel-handler attribute + `Channel<S,R>` param) |
 | `channel<i64>(policy: Unbounded)`, `tx.send`, `rx.recv` | in-process channel | ✅ runs (passes `check` + emits) |
@@ -116,28 +118,28 @@ To compile `backend.q` *as written*, in dependency order:
    ~~`CONC050`~~ ✅ also fixed: `channel<i64>(policy: Unbounded)` (the policy is an
    argument, not a type param), so `backend.q` now passes `q64 check` cleanly.
 
-2b. **Senders as first-class values** — the deep, still-open subsystem the twin
-   leans on (`state subs: Vec<Sender<…>>`, `subs.push(move tx)`, `Join(tx)`,
-   `for tx in subs { tx.send(n) }`). Today a `Sender`/`Receiver` is a **scope
-   binding** (`scope.chans`: a Vec buffer + a read cursor), *not* a value — so it
-   can't be pushed into a Vec, moved, or carried in a message. The architecture
-   to close it (a coherent change across the channel/Vec/move systems):
-   - A `Sender` value **is** its channel buffer pointer (i64). Make a sender
-     binding coerce to that pointer in value position, so `Vec<Sender>` reuses
-     the existing i64 Vec (a vec of buffer pointers).
-   - `tx.send(n)` already pushes onto the buffer; make `.send` work on a sender
-     **value** (a buffer pointer from a Vec element / a payload), not only a
-     `scope.chans` binding.
-   - `move tx` → yield the sender's buffer pointer as that value (v0: move is the
-     value, no borrow tracking yet).
-   - Message payloads + `for tx in subs` then carry/iterate sender pointers and
-     `tx.send` dispatches on them. This is ~a few hundred lines spanning
-     `tryChannelSend`, the Vec element path, `move`, and the message-payload
-     path — a real slice, not a one-liner.
+2b. ~~**Senders as first-class values**~~ — ✅ **done, standalone.** A
+   `Sender`/`Receiver` used as a value now yields its channel-buffer pointer
+   (i64), so it pushes into a Vec, is `move`d, and `.send` works on a sender
+   *value* (a Vec element / moved sender — narrowed back to the buffer). The
+   broadcast loop `for s in subs { s.send(n) }` and `for n in rx` both run;
+   multi-subscriber fan-out verified (push 3 senders, broadcast 42, all 3 recv).
+   `move`/`ref` are v0 identity. (One narrow channel limit remains: `recv()` in
+   *expression* position with multiple channels — the twin uses `let`/`for`
+   forms, so it's unaffected.)
+2c. **Actor state as a collection + Sender-typed handler params** — the last
+   layer to wire 2b *into the actor*: `state subs: Vec<Sender<…>>` and
+   `handle Join(tx: Sender<…>)`. Today an actor's `state` fields are **scalar
+   only** — the struct builder runs each field type through `semaScalar`, which
+   rejects `Vec<T>`, so an actor with a Vec field isn't even registered
+   (`NameNotFound`). Needs: a Vec/ptr state field (a header pointer in the state
+   record, with `state.subs.push` / `for s in state.subs` resolving through it),
+   and a `Sender`-typed handler param accepted as i64 (a sender value). The
+   fan-out primitives (2b) all exist — this is the integration into actor state.
 3. **`@channel_handler` + `Channel<S, R>`** — the rpc channel entry point: a
-   `pub fn` taking a bidirectional channel, served over wRPC. Rides #2b and the
+   `pub fn` taking a bidirectional channel, served over wRPC. Rides #2c and the
    component/wRPC export already wired in the manifest.
-4. **for-in over a live channel/stream** (`for n in rx`) — the
+4. ~~**for-in over a live channel/stream** (`for n in rx`)~~ — ✅ done. The
    remaining surface the handler body uses.
 
 A **compiles-today** backend (keyless `env.kv`, method-style actor, i64 Vec,
