@@ -1,0 +1,24 @@
+{
+  // QubePod deploy manifest — Blackbird chess engine + web board.
+  //
+  // Two builds of the same Rust engine core ship in the bundle:
+  //   - component/blackbird.wasm — a real WIT component (wasm32-wasip2,
+  //     world qubepods:blackbird/blackbird: set-position / best-move …),
+  //     replacing the placeholder core module of the first deploy;
+  //   - web/engine/blackbird.wasm — the browser build (wasm32-unknown-
+  //     unknown) the page's Web Worker runs, shipped as a plain asset.
+  //
+  // Both are committed; rebuild with scripts/build-wasm.sh after engine
+  // changes. `qube pod deploy` packs this manifest + the component + web/
+  // and uploads.
+  "apiVersion": "qubepods.dev/v0.1",
+  "kind": "QubePod",
+  "project": "blackbird",
+  "name": "blackbird",
+  "version": "0.2.0",
+  "component": {
+    "wasm": "./component/blackbird.wasm",
+    "wit": { "package": "qubepods:blackbird@0.1.0", "world": "blackbird" }
+  },
+  "assets": { "directory": "./web" }
+}

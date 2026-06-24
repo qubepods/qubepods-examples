@@ -1,0 +1,95 @@
+:root {
+  --light: #ecdab9;
+  --dark: #ae8a68;
+  --select: rgba(40, 120, 220, 0.55);
+  --target: rgba(40, 180, 90, 0.55);
+  --last: rgba(240, 200, 60, 0.45);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #22211f;
+  color: #eee;
+  display: flex;
+  justify-content: center;
+}
+
+main { padding: 1.5rem; max-width: 980px; }
+
+header h1 { margin: 0 0 0.2rem; }
+header p { margin: 0 0 1rem; color: #aaa; }
+
+.layout { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+
+#board {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(40px, 72px));
+  grid-template-rows: repeat(8, minmax(40px, 72px));
+  border: 4px solid #111;
+  user-select: none;
+}
+
+.square {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.square.light { background: var(--light); }
+.square.dark { background: var(--dark); }
+
+.square img { width: 88%; height: 88%; pointer-events: none; }
+
+.square.selected::after,
+.square.target::after,
+.square.last::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.square.selected::after { background: var(--select); }
+.square.target::after { background: var(--target); border-radius: 50%; margin: 32%; }
+.square.target.occupied::after { border-radius: 0; margin: 0; opacity: 0.6; }
+.square.last::after { background: var(--last); }
+
+aside {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  min-width: 240px;
+  flex: 1;
+}
+
+#status { font-size: 1.1rem; min-height: 1.4em; }
+
+.controls { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+.controls label { color: #bbb; font-size: 0.9rem; }
+.controls select { margin-left: 0.3rem; }
+
+button {
+  background: #444;
+  color: #eee;
+  border: 1px solid #666;
+  border-radius: 6px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+}
+button:hover { background: #555; }
+
+#moves {
+  background: #1a1918;
+  border-radius: 6px;
+  padding: 0.7rem;
+  min-height: 8rem;
+  max-height: 18rem;
+  overflow-y: auto;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+#fen { color: #888; font-size: 0.75rem; word-break: break-all; }

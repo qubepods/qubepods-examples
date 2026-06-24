@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blackbird — chess in the browser</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Blackbird</h1>
+      <p>The Blackbird engine core, compiled to WebAssembly. You play white — flip the board to play black.</p>
+    </header>
+
+    <div class="layout">
+      <div id="board" aria-label="chess board"></div>
+
+      <aside>
+        <div id="status">loading engine…</div>
+
+        <div class="controls">
+          <button id="new-game">New game</button>
+          <button id="engine-move" title="Let the engine move for the side to play">Engine move</button>
+          <button id="flip" title="Turn the table: play black, the engine plays white">Flip board</button>
+          <label>Depth
+            <select id="depth">
+              <option value="3">3</option>
+              <option value="5">5</option>
+              <option value="7" selected>7</option>
+              <option value="9">9</option>
+              <option value="12">12 (slow)</option>
+              <option value="15">15 (minutes)</option>
+            </select>
+          </label>
+          <label>Promote to
+            <select id="promo">
+              <option value="q" selected>Queen</option>
+              <option value="r">Rook</option>
+              <option value="b">Bishop</option>
+              <option value="n">Knight</option>
+            </select>
+          </label>
+        </div>
+
+        <pre id="moves" aria-label="move list"></pre>
+        <code id="fen"></code>
+      </aside>
+    </div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+package qubepods:blackbird@0.1.0;
+
+/// The Blackbird chess engine as a component: one game position, searched
+/// from the current state. Moves are UCI strings ("e2e4", "e7e8q"); move
+/// lists and positions are FEN / comma-joined UCI, matching the engine's
+/// native notation.
+world blackbird {
+  /// Replace the position. Returns false on a malformed FEN.
+  export set-position: func(fen: string) -> bool;
+
+  /// Current position as FEN.
+  export fen: func() -> string;
+
+  /// Legal moves from the current position, comma-joined UCI.
+  export legal-moves: func() -> string;
+
+  /// Apply a UCI move. Returns false if the move is not legal.
+  export apply-move: func(uci: string) -> bool;
+
+  /// Best move at the given depth as UCI, or "" if the game is over.
+  /// The position is left unchanged.
+  export best-move: func(depth: u32) -> string;
+}

@@ -1,0 +1,10 @@
+[package]
+name = "chess-engine"
+version = "0.1.0"
+edition = "2021"
+description = "Chess engine core - board representation, move generation, search, evaluation"
+
+[lib]
+crate-type = ["lib", "staticlib"]
+
+[dependencies]

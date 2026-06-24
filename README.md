@@ -14,6 +14,7 @@ can build with `qube` and deploy to a qubepods project.
 |---------|---------------|
 | [**twin-counter**](./twin-counter/) | The backend starter. A button and a shared count, built as a **twin** — a frontend wasm that renders, and a backend wasm you write that holds the count in a WASI key-value store (`env.kv`) and serves it over wRPC. |
 | [**scene-overlay**](./scene-overlay/) | A QView form floating over a **3D scene** (`scene` viewport, kind 21): a turning cube drawn by the quine engine behind a frosted card with a live counter. No backend — local `state` and an `on_5` press handler. Also **links a second qube** (`color/`) for the swatch colour. The base for QView-widgets-over-3D. |
+| [**blackbird**](./blackbird/) | A full chess engine you play in the browser, shipped as a **QubePod** (`qubepod.jsonc`) instead of a `.q` app: precompiled **Rust** source packed as a WIT **component** (`qubepods:blackbird/blackbird`) plus a static `web/` page. The committed wasm runs from a plain checkout. The pattern for bringing an existing native codebase to qubepods. |
 
 ## Using an example
 
