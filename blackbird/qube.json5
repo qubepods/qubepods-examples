@@ -1,0 +1,14 @@
+{
+  $schema: "https://q64.dev/schema/qube.json5",
+  name: "qubepods.examples.blackbird",
+  version: "0.1.0",
+  license: "MIT",
+  description: "Blackbird chess — a static-asset qube: a hand-written web page (HTML/CSS/JS + a wasm it loads) served as-is.",
+
+  // Static-site qube. `qube deploy` ships this directory's whole tree as the
+  // pod's public assets — no q64 compile, no component, no runtime. The page is
+  // its own `index.html`; the chess-engine wasm in `web/engine/` is just another
+  // file the page fetches (an *asset* wasm, not a q64 build). `notFound` is the
+  // SPA/404 mode for unmatched routes.
+  static: { dir: "web", notFound: "single-page-application" },
+}
