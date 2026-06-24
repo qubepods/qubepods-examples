@@ -3,8 +3,9 @@
 A full chess game you play in the browser — board, rules, and engine — shipped
 as **static files**. The engine is a **high-performance Rust chess engine
 compiled to WebAssembly** (magic bitboards, transposition table, quiescence
-search) that runs **entirely in the browser, at near-native speed** — the search
-happens on your device, off the main thread in a Web Worker, with **no server**.
+search), plays at roughly **1500 Elo** — a solid club-level opponent — and runs
+**entirely in the browser, at near-native speed**: the search happens on your
+device, off the main thread in a Web Worker, with **no server**.
 There is no q64 source to compile and no backend; the whole qube is the `web/`
 folder, served as-is. It's the example for bringing a hand-written web app
 (HTML/CSS/JS + whatever wasm it loads) to qubepods **unchanged**.
