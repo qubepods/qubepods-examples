@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "name": "qube-rocks",
+  "fixedHz": 64,
+  "interpolate": true,
+  "overlay": "https://cdn.qubeworlds.com/overlays/controls.js",
+  "script": { "source": "./qube-rocks.skill.js" },
+  "entities": [
+    {
+      "name": "ship",
+      "geometry": { "kind": "cone", "radius": 0.32, "height": 0.8, "segments": 20 },
+      "material": { "color": [0.45, 0.85, 1.0, 1.0], "metallic": 0.0, "roughness": 0.5 },
+      "transform": { "position": [0, 0, 0] }
+    },
+    {
+      "name": "nose",
+      "geometry": { "kind": "sphere", "radius": 0.12 },
+      "material": { "color": [1.0, 0.95, 0.5, 1.0], "emissive": [0.8, 0.7, 0.2] },
+      "transform": { "position": [0.5, 0, 0] }
+    },
+    {
+      "name": "rockBig",
+      "geometry": { "kind": "sphere", "radius": 0.7 },
+      "material": { "color": [0.55, 0.55, 0.6, 1.0], "metallic": 0.0, "roughness": 0.9 },
+      "transform": { "position": [-999, 0, 0] }
+    },
+    {
+      "name": "rockSmall",
+      "geometry": { "kind": "sphere", "radius": 0.35 },
+      "material": { "color": [0.6, 0.55, 0.5, 1.0], "metallic": 0.0, "roughness": 0.9 },
+      "transform": { "position": [-999, 0, 0] }
+    },
+    {
+      "name": "bullet",
+      "geometry": { "kind": "sphere", "radius": 0.08 },
+      "material": { "color": [1.0, 0.6, 0.3, 1.0], "emissive": [1.0, 0.5, 0.2] },
+      "transform": { "position": [-999, 0, 0] }
+    },
+    {
+      "name": "key",
+      "light": { "kind": "directional", "direction": [-0.3, -0.9, -0.4], "color": [1, 1, 1], "intensity": 1.4 }
+    },
+    {
+      "name": "sky",
+      "environment": {
+        "sky": { "zenith": [0.02, 0.03, 0.06], "horizon": [0.05, 0.07, 0.12] },
+        "ambient": { "color": [0.35, 0.45, 0.65], "intensity": 0.55 }
+      }
+    },
+    {
+      "name": "camera",
+      "transform": { "position": [0, 14, 0.01] },
+      "camera": { "fovY": 0.9, "near": 0.1, "far": 100, "controller": { "kind": "orbit", "target": [0, 0, 0], "distance": 14, "yaw": 0, "pitch": 1.4 } }
+    }
+  ]
+}

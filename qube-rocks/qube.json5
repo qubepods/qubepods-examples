@@ -1,0 +1,23 @@
+{
+  $schema: "https://q64.dev/schema/qube.json5",
+  name: "qubepods.examples.qube-rocks",
+  version: "0.1.0",
+  license: "MIT OR Apache-2.0",
+  description: "Qube Rocks — Asteroids-lite: a static-asset qube whose page loads the shared quine 3D engine from the CDN and runs the whole game client-side. Single player, no backend, no server.",
+
+  // Static-site qube (like blackbird). `qube deploy` serves this directory's
+  // `web/` tree as-is — no q64 compile, no component, no platform runtime. The
+  // page (`web/index.html`) IS the host: it loads the shared **quine** engine
+  // from cdn.qubeworlds.com and feeds it `web/scene.json` + `web/qube-rocks.skill.js`
+  // through the generic inject API, then mounts the reusable controls.js overlay.
+  // The engine wasm is NOT bundled here — it's the shared CDN engine; only the
+  // game's content (scene + skill) and harness ship in this qube.
+  //
+  // This is the SINGLE-PLAYER / client-only tier: everything runs in the browser,
+  // nothing authoritative to hold, so Cloudflare static hosting is a perfect fit.
+  // A multiplayer variant would instead use the QubeGame client + a game-server
+  // room (which runs on a dedicated node, not Cloudflare) — a different shape.
+  //
+  // `notFound: single-page-application` serves index.html for unmatched routes.
+  static: { dir: "web", notFound: "single-page-application" },
+}

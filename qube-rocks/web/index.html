@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Qube Rocks — Asteroids in the quine engine</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #05070c; overflow: hidden;
+      font: 14px/1.4 ui-sans-serif, system-ui, sans-serif; color: #cfe9ff; }
+    /* The engine's 3D canvas fills the viewport; the overlay composites on top. */
+    #canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+      touch-action: none; background: #05070c; }
+    #overlay { position: absolute; inset: 0; }            /* controls.js mounts here */
+    #status { position: absolute; left: 8px; top: 8px; color: #7c8aa0; font-size: 12px;
+      pointer-events: none; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
+  </style>
+</head>
+<body>
+  <!-- A static-asset qube (Blackbird-style): this page IS the host. It loads the
+       shared quine engine from the CDN and feeds it this folder's scene + skill
+       through the generic inject API (quine_enqueue), then mounts the reusable
+       controls.js overlay and wires its buttons/keys to the engine's input axes.
+       No q64 compile, no platform runtime, no server — single-player, client-only. -->
+  <canvas id="canvas"></canvas>
+  <div id="overlay"></div>
+  <div id="status">loading engine…</div>
+
+  <script>
+  (async function () {
+    var CDN = "https://cdn.qubeworlds.com";
+    var ENGINE_BASE = CDN + "/engine";          // the shared, content-agnostic engine
+    var bust = "?v=" + Date.now();
+    var statusEl = document.getElementById("canvas") && document.getElementById("status");
+    function status(t) { if (statusEl) statusEl.textContent = t; }
+
+    // ── 1. Fetch this qube's scene + everything it links (skill, overlay) ──────
+    // Resolved RELATIVE to scene.json, exactly like the Qubeworlds /scene viewer.
+    var sceneUrl = new URL("scene.json", location.href).href;
+    var sceneJson, scene, skillCode = "", overlayUrl = null;
+    try {
+      var r = await fetch(sceneUrl + bust, { cache: "no-store" });
+      if (!r.ok) throw new Error("scene HTTP " + r.status);
+      sceneJson = await r.text();
+      scene = JSON.parse(sceneJson);
+      overlayUrl = scene.overlay ? new URL(scene.overlay, sceneUrl).href : null;
+      if (scene.script && scene.script.source) {
+        var sk = await fetch(new URL(scene.script.source, sceneUrl).href + bust);
+        if (sk.ok) skillCode = await sk.text();
+      }
+    } catch (e) { status("scene load failed: " + (e && e.message)); return; }
+
+    // ── 2. Pick a GPU backend (WebGPU if available, else WebGL2) ──────────────
+    var backend = "webgl2";
+    try { if (navigator.gpu && (await navigator.gpu.requestAdapter())) backend = "webgpu"; } catch (e) {}
+
+    // ── 3. The host seam the controls.js overlay drives ───────────────────────
+    // It pushes input axes; the engine routes them to the skill's input(axis).
+    function enqueue(obj) {
+      try { window.Module.ccall("quine_enqueue", null, ["string"], [JSON.stringify(obj)]); } catch (e) {}
+    }
+    var host = { input: function (axis, value) { enqueue({ type: "input", axis: axis | 0, value: +value }); } };
+
+    async function mountOverlay() {
+      if (!overlayUrl) return;
+      try {
+        var mod = await import(overlayUrl + bust);
+        if (mod && typeof mod.mount === "function") await mod.mount(document.getElementById("overlay"), host);
+      } catch (e) { status("overlay failed: " + (e && e.message)); }
+    }
+
+    // ── 4. Boot the engine empty, then inject scene → skill (DEPENDENCY INJECTION).
+    // The engine never fetches; the host feeds it. Loading a scene starts the sim.
+    window.Module = {
+      canvas: document.getElementById("canvas"),
+      locateFile: function (p) { return ENGINE_BASE + "/" + p + bust; },
+      print: function () {},
+      printErr: function (t) { status("engine: " + t); },
+      onAbort: function (w) { status("engine aborted: " + w); },
+      onRuntimeInitialized: function () {
+        enqueue({ type: "scene", json: sceneJson }); // builds + starts the scene
+        enqueue({ type: "skill", code: skillCode }); // the game loop
+        try { window.Module.ccall("quine_set_hud", null, ["number"], [0]); } catch (e) {}
+        status("");                                   // clear once running
+        setTimeout(mountOverlay, 150);                // controls over the canvas
+      },
+    };
+    status("loading 3D engine (" + backend + ")…");
+    var s = document.createElement("script");
+    s.async = true;
+    s.crossOrigin = "anonymous";                      // the bundle is cross-origin (CDN)
+    s.src = ENGINE_BASE + "/quine-" + backend + ".js" + bust;
+    s.onerror = function () { status("engine script failed to load"); };
+    document.head.appendChild(s);
+  })();
+  </script>
+</body>
+</html>
