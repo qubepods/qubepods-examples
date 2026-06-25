@@ -43,18 +43,6 @@ keyboard), driving the engine's input axes that the skill reads via `input(axis)
 | `add_systems(FixedUpdate, simulate_game)` | `qube-rocks.skill.js` → `onPreStep(dt)` |
 | `add_systems(Update, …)` (input/UI per frame) | the `controls.js` overlay |
 
-## Single-player vs multiplayer
-
-This is the **single-player / client-only** tier: the deterministic game loop runs
-in the browser (the skill), so there's nothing authoritative to hold and static
-Cloudflare hosting is the right fit. A **multiplayer** Qube Rocks would be a
-*different shape* — the [`@world/qubegame`](https://github.com/qubeworlds/world/tree/main/packages/qubegame)
-client (`mountQuine`) joining a **game-server room**, with the authoritative sim
-running in the gameserver on a **dedicated node (not Cloudflare)**. Same engine,
-same scene, same controller — only *who holds authority* and *the transport*
-change. The 64 Hz deterministic fixed-step here is exactly what that server-
-authoritative model wants, so it ports cleanly.
-
 ## Files
 
 - `qube.json5` — `static: { dir: "web" }`. No q64 compile, no component, no backend.
