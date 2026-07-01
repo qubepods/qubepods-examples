@@ -1,11 +1,11 @@
-// API-Classic — a standard Cloudflare Worker, deployed to qubepods on Workers for
-// Platforms, using KV + SQLite + R2 with ZERO wrangler config.
+// API-Classic — a classic HTTP API worker, deployed to qubepods with `qube deploy`,
+// using KV + SQLite + R2 with ZERO wrangler config.
 //
 // The point of this example: you write an ordinary `export default { fetch }`
-// module. You do NOT declare any Cloudflare bindings, ids, or namespaces. The
-// platform reads the `imports` block in qubepod.jsonc and injects three reserved
-// bindings into `env` at deploy time (docs: qubepods §"Storage tiers, reserved
-// bindings"):
+// module (no wasm on the server). You do NOT declare any Cloudflare bindings, ids,
+// or namespaces. The platform reads the `env` block in qube.json5 and injects
+// three reserved bindings into `env` at deploy time (docs: qubepods §"Storage
+// tiers, reserved bindings"):
 //
 //   env.KV      — key-value       (service binding to the platform KV gateway,
 //                                   backed by this project's Durable Object)
@@ -15,10 +15,10 @@
 //   env.BUCKET  — object storage  (a dedicated R2 bucket, this project's bucket)
 //
 // One of each, per project, under fixed names — so any app in the project that
-// declares the same imports binds the SAME stores. KV and the light-fast DB both
-// live in ONE per-project durable, so a later "API-Twin" app (front-end wasm
-// rendering a QView, back-end wasm) reading `env.kv`/`env.db` shares these exact
-// stats — same project, same durable, same tables.
+// declares the same env block binds the SAME stores. KV and the light-fast DB both
+// live in ONE per-project durable, so the twin app (front-end wasm rendering a
+// QView, back-end wasm) reading `env.kv`/`env.db` shares these exact stats — same
+// project, same durable, same tables.
 //
 // The test page is served by THIS worker (from the API, not as a static asset):
 // GET / returns an HTML dashboard that calls the JSON endpoints below and shows,
@@ -55,7 +55,7 @@ export default {
 function health(env) {
 	return {
 		ok: true,
-		note: 'these bindings were injected by qubepods from qube.json5 imports — no wrangler.jsonc',
+		note: 'these bindings were injected by qubepods from the qube.json5 env block — no wrangler.jsonc',
 		bindings: {
 			KV: hasMethod(env.KV, 'get') && hasMethod(env.KV, 'put'),
 			DB: hasMethod(env.DB, 'exec') && hasMethod(env.DB, 'query'),
@@ -210,7 +210,7 @@ const PAGE = `<!doctype html>
 <body>
 <main>
   <h1>API-Classic</h1>
-  <p class="sub">A standard Cloudflare Worker on Workers for Platforms — <b>KV</b>, <b>SQLite</b>, and <b>R2</b> auto-bound from the manifest, no <code>wrangler.jsonc</code>.</p>
+  <p class="sub">A classic HTTP API worker — <b>KV</b>, <b>SQLite</b>, and <b>R2</b> auto-bound from the <code>qube.json5</code> manifest. <code>qube run</code> / <code>qube deploy</code>, no wrangler.</p>
 
   <h2>Shared stats</h2>
   <div class="stats">

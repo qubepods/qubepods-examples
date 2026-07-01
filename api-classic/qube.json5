@@ -1,0 +1,50 @@
+{
+  $schema: "https://q64.dev/schema/qube.json5",
+  // Qube names are snake_case dotted segments — no dashes (the folder may use a
+  // dash, the name may not).
+  name: "qubepods.examples.api_classic",
+  version: "0.1.0",
+  license: "MIT OR Apache-2.0",
+  description: "A classic HTTP API worker — a plain JS request handler (no wasm on the server) that stores records in the key-value store, queries the light-fast SQLite database, and stashes blobs in object storage. Bindings come from this manifest; it never names a namespace, database, or bucket.",
+
+  // A CLASSIC worker qube. Unlike the twin (wasm client + wasm backend), this
+  // ships an ordinary `export default { fetch }` module and runs it as-is — no
+  // q64 compile, no component, no wasm on the server. `language` marks it as a
+  // hand-written handler; `entry` is the module served.
+  //
+  // Two commands, same as every example — no qubepod.jsonc, no wrangler, no
+  // deploy script:
+  //   qube run      — serve it locally with the three stores bound.
+  //   qube deploy   — ship it to qubepods; it gets a per-qube HTTPS endpoint.
+  worker: {
+    language: "javascript",
+    entry: "src/index.js",
+  },
+
+  // The stores this API reaches — the ONLY place bindings come from. A classic
+  // worker has no q64 effect analysis to derive them, so it names the capabilities
+  // here (never a namespace id, a database id, or a bucket name). qubepods opens
+  // each store and pins it to this qube's identity (org/project/app), then injects
+  // it under a fixed reserved name:
+  //
+  //   kv   -> env.KV      key-value  — this project's Durable Object (via the KV gateway)
+  //   db   -> env.DB      SQLite     — the SAME project Durable Object's SQLite (SQL gateway)
+  //   blob -> env.BUCKET  object store — this project's R2 bucket
+  //
+  // One store of each PER PROJECT, under reserved names — so the twin app in the
+  // same project binds the SAME stores and shares this exact data.
+  env: {
+    // Key-value → env.KV.
+    kv: true,
+
+    // SQLite → env.DB. tier "light-fast" = the project Durable Object's SQLite
+    // (the SAME durable as env.KV), so a classic worker here and a q64 twin in
+    // the same project share ONE database. The other tiers: "replicated" (a
+    // dedicated Cloudflare D1) and "external" (BYO Postgres/MySQL). Pinned at
+    // project creation, immutable.
+    db: { tier: "light-fast" },
+
+    // Object storage → env.BUCKET (this project's R2 bucket).
+    blob: true,
+  },
+}
