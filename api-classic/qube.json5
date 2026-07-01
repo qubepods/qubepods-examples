@@ -17,10 +17,13 @@
   // module exports a plain function; this component wrapper is what makes it an
   // HTTP handler (env.md §"HTTP service entry point"). No store is bound here —
   // the component only targets wasi:http/proxy; the host opens KV/SQL/blob.
+  // The v0 `@http_handler` lifts to a component that EXPORTS a sync
+  // `serve(method, path, body) -> string` — the shape qubepods runs on a plain
+  // Worker. (The async Preview-3 `wasi:http/proxy` world needs JSPI the Worker
+  // runtime doesn't provide; it's a container-host target.)
   component: {
     emit: true,
     world: "api-classic",
-    worlds: ["wasi:http/proxy"],
   },
 
   // What the API reaches — documented here, cross-checked against the source at
@@ -31,6 +34,6 @@
   // capability boundary is the whole point — the app's data can't leak to
   // another tenant, enforced by the runtime, not by convention.
   effects: {
-    declared: ["@kv", "@db", "@blob", "@network"],
+    declared: ["@kv", "@db", "@blob"],
   },
 }
