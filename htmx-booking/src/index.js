@@ -222,7 +222,7 @@ async function page(env, request) {
   .clock .time { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
   .clock .time small { font-size: 13px; color: #9aa4b2; font-weight: 400; }
   .clock .edge { color: #9aa4b2; font-size: 13px; margin-top: 2px; }
-  .htmx-request:not(.clock) { opacity: .5; transition: opacity .15s; }
+  button.htmx-request { opacity: .5; transition: opacity .15s; }
 </style>
 </head>
 <body>
@@ -246,12 +246,15 @@ async function page(env, request) {
   <div id="clock" class="card clock" hx-get="/clock" hx-trigger="load, every 1s"></div>
 
   <h2>Slots</h2>
-  <!-- [htmx] loads itself on page load, and re-loads whenever anything on the
-       page fires slots-changed (the delete handler does, via HX-Trigger). -->
-  <div id="slots" class="card" hx-get="/slots" hx-include="#date" hx-trigger="load, slots-changed from:body"></div>
+  <!-- [htmx] loads itself on page load, re-loads whenever anything on the page
+       fires slots-changed (the delete handler does, via HX-Trigger), and polls
+       every 3s so a booking made in ANOTHER browser shows up here — the panels
+       converge on the server's state without a socket. (Push instead of poll is
+       the twin's job: the same fragments fanned over its WebSocket.) -->
+  <div id="slots" class="card" hx-get="/slots" hx-include="#date" hx-trigger="load, every 3s, slots-changed from:body"></div>
 
   <h2>Bookings</h2>
-  <ul id="bookings" class="card" hx-get="/bookings" hx-trigger="load, bookings-changed from:body"></ul>
+  <ul id="bookings" class="card" hx-get="/bookings" hx-trigger="load, every 3s, bookings-changed from:body"></ul>
 </main>
 </body>
 </html>`;

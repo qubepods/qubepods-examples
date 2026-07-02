@@ -8,7 +8,7 @@
   description: "A hypermedia (htmx) slot-booking app — the server renders HTML fragments, the browser swaps them in. Native <input type=\"date\"> as the date picker, no build step, no frontend framework; bookings live in the project's SQLite database via env.DB.",
 
   // Your qubepods project slug (a deploy token is pinned to its project).
-  project: "htmx-booking",
+  project: "edge",
 
   // An application (a deployable Qube — it gets a URL).
   type: "application",

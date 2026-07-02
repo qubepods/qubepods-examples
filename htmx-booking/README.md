@@ -60,7 +60,11 @@ those attributes, not components you import.
 4. **Polling** — the server clock re-fetches itself with
    `hx-trigger="every 1s"`. The ticking you see is server renders arriving,
    not a client-side timer: each fragment carries the server's UTC time and
-   the **edge colo** that rendered it.
+   the **edge colo** that rendered it. The slots and bookings panels poll too
+   (`every 3s`), so a booking made in **another browser** shows up in yours —
+   the panels converge on the server's state without a socket. (Push instead
+   of poll is the twin's job: the same fragments fanned over its WebSocket —
+   see `twin-counter`.)
 
 ## The edge knows who you are (qubepods-specific)
 
@@ -85,5 +89,8 @@ like `api-classic`). From the example's folder in Qubonaut
 
 ```sh
 qube run       # live preview against the project's real SQLite
-qube deploy    # ship it — https://htmx-booking.qubepod.app/
+qube deploy    # ship it to your project's *.qubepod.app URL
 ```
+
+Live at [electric-moss-27.qubepod.app](https://electric-moss-27.qubepod.app/)
+(deployed in a project named `edge` — set `project` in `qube.json5` to yours).
