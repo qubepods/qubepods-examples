@@ -1,0 +1,26 @@
+{
+  $schema: "https://q64.dev/schema/qube.json5",
+  // Qube names are snake_case dotted segments — no dashes.
+  name: "qubepods.examples.adder",
+  version: "0.1.0",
+  license: "MIT OR Apache-2.0",
+  description: "The smallest q64 component — one scalar function, a + b.",
+  type: "library",
+  entry: "src/lib.q",
+
+  // Emit a WebAssembly component in addition to the core module. The one
+  // export is scalar (i64 -> s64), so it lifts through the canonical ABI
+  // with no capability imports. See q64 spec/modules.md §"The qube as a
+  // component".
+  component: {
+    emit: true,
+  },
+
+  // The published WIT contract: the library's surface is its world, named
+  // from the qube's identity rather than the entry filename.
+  wit: {
+    package: "qubepods-examples:adder",
+    world: "adder",
+    path: "synthesized",
+  },
+}
